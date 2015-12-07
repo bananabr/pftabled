@@ -51,7 +51,7 @@
 int pfdev = -1;
 
 int use_syslog = 0;
-int timeout = 0;
+int default_timeout = 0;
 
 TAILQ_HEAD(pftimeout_head, pftimeout) timeouts;
 struct pftimeout {
@@ -83,12 +83,13 @@ logit(int level, const char *fmt, ...)
 }
 
 static void
-add(char *tname, struct in_addr *ip, uint8_t mask)
+add(char *tname, struct in_addr *ip, uint8_t mask, uint32_t _timeout)
 {
 	struct pfioc_table io;
 	struct pfr_table table;
 	struct pfr_addr addr;
 	struct pftimeout *t;
+	uint32_t timeout;
 
 	bzero(&io, sizeof io);
 	bzero(&table, sizeof(table));
@@ -108,7 +109,8 @@ add(char *tname, struct in_addr *ip, uint8_t mask)
 	if (ioctl(pfdev, DIOCRADDADDRS, &io))
 		err(1, "ioctl");
 
-	if (timeout) {
+	if (default_timeout != 0 || _timeout != 0) {
+                timeout = _timeout != 0 ? _timeout : default_timeout;
 		if ((t = malloc(sizeof(struct pftimeout))) == NULL)
 			err(1, "malloc");
 		t->ip = *ip;
@@ -303,7 +305,11 @@ main(int argc, char *argv[])
 		    (struct sockaddr *)&raddr, &socklen);
 
 		/* Check for timeouts */
-		if (timeout) {
+		/*if (timeout) {*/
+                pid_t pid = fork();
+                if (pid == 0)
+                {
+                  while(1){
 			time_t now = time(NULL);
 
 			while (!TAILQ_EMPTY(&timeouts)) {
@@ -320,67 +326,74 @@ main(int argc, char *argv[])
 				TAILQ_REMOVE(&timeouts, t, queue);
 				free(t);
 			}
-		}
+                    sleep(TIMEOUT_CHECK_INTERVAL);
+                  }
+		}else if (pid > 0){
+	  	  /* Drop short packets */
+	  	  if (n != sizeof(msg))
+	  	  	continue;
 
-		/* Drop short packets */
-		if (n != sizeof(msg))
-			continue;
+	  	  /* Check packet version */
+	  	  if (msg.version > PFTABLED_MSG_VERSION) {
+	  	  	if (verbose)
+	  	  		logit(LOG_ERR, "wrong protocol version\n");
+	  	  	continue;
+	  	  }
 
-		/* Check packet version */
-		if (msg.version > PFTABLED_MSG_VERSION) {
-			if (verbose)
-				logit(LOG_ERR, "wrong protocol version\n");
-			continue;
-		}
+	  	  /* Transform packets from previous versions */
+	  	  if (msg.version < 0x02)
+	  	  	msg.mask = 32;
+	  	  if (msg.version < 0x03)
+	  	  	msg.timeout = 0;
 
-		/* Transform packets from previous versions */
-		if (msg.version == 0x01)
-			msg.mask = 32;
+	  	  /* Check timestamp */
+	  	  if (abs(time(NULL) - ntohl(msg.timestamp)) > CLOCKDIFF) {
+	  	  	if (verbose)
+	  	  		logit(LOG_ERR, "wrong timestamp from %s\n",
+	  	  		    inet_ntoa(raddr.sin_addr));
+	  	  	continue;
+	  	  }
 
-		/* Check timestamp */
-		if (abs(time(NULL) - ntohl(msg.timestamp)) > CLOCKDIFF) {
-			if (verbose)
-				logit(LOG_ERR, "wrong timestamp from %s\n",
-				    inet_ntoa(raddr.sin_addr));
-			continue;
-		}
+	  	  /* Check authentication */
+	  	  if (use_key && hmac_verify(key, &msg,
+	  	      sizeof(msg) - sizeof(msg.digest), msg.digest)) {
+	  	  	if (verbose)
+	  	  		logit(LOG_ERR, "wrong authentication\n");
+	  	  	continue;
+	  	  }
 
-		/* Check authentication */
-		if (use_key && hmac_verify(key, &msg,
-		    sizeof(msg) - sizeof(msg.digest), msg.digest)) {
-			if (verbose)
-				logit(LOG_ERR, "wrong authentication\n");
-			continue;
-		}
+	  	  /* Which table to use */
+	  	  table = forced ? forced : (char *)&msg.table;
 
-		/* Which table to use */
-		table = forced ? forced : (char *)&msg.table;
-
-		/* Dispatch commands */
-		switch (msg.cmd) {
-		case PFTABLED_CMD_ADD:
-			cleanmask(&msg.addr, msg.mask);
-			add(table, &msg.addr, msg.mask);
-			if (verbose)
-				logit(LOG_INFO, "<%s> add %s/%d\n", table,
-				    inet_ntoa(msg.addr), msg.mask);
-			break;
-		case PFTABLED_CMD_DEL:
-			cleanmask(&msg.addr, msg.mask);
-			del(table, &msg.addr, msg.mask);
-			if (verbose)
-				logit(LOG_INFO, "<%s> del %s/%d\n", table,
-				    inet_ntoa(msg.addr), msg.mask);
-			break;
-		case PFTABLED_CMD_FLUSH:
-			flush(table);
-			if (verbose)
-				logit(LOG_INFO, "<%s> flush\n", table);
-			break;
-		default:
-			logit(LOG_ERR, "received unknown command\n");
-			break;
-		}
+	  	  /* Dispatch commands */
+	  	  switch (msg.cmd) {
+	  	  case PFTABLED_CMD_ADD:
+	  	  	cleanmask(&msg.addr, msg.mask);
+	  	  	add(table, &msg.addr, msg.mask);
+	  	  	if (verbose)
+	  	  		logit(LOG_INFO, "<%s> add %s/%d\n", table,
+	  	  		    inet_ntoa(msg.addr), msg.mask);
+	  	  	break;
+	  	  case PFTABLED_CMD_DEL:
+	  	  	cleanmask(&msg.addr, msg.mask);
+	  	  	del(table, &msg.addr, msg.mask);
+	  	  	if (verbose)
+	  	  		logit(LOG_INFO, "<%s> del %s/%d\n", table,
+	  	  		    inet_ntoa(msg.addr), msg.mask);
+	  	  	break;
+	  	  case PFTABLED_CMD_FLUSH:
+	  	  	flush(table);
+	  	  	if (verbose)
+	  	  		logit(LOG_INFO, "<%s> flush\n", table);
+	  	  	break;
+	  	  default:
+	  	  	logit(LOG_ERR, "received unknown command\n");
+	  	  	break;
+	  	  }
+                }else{
+                  printf("fork() failed!\n");
+                  return (1);
+                }
 	}
 
 	return (0);
