@@ -33,6 +33,7 @@ command = { 'add': 1, 'del': 2, 'flush': 3 }.get(sys.argv[4], 0)
 
 addr = '0.0.0.0'
 netmask = 32
+timeout = 3600
 if len(sys.argv) > 5:
     addr = sys.argv[5]
     m = re.search('([\d\.]+)/(\d+)', addr)
@@ -45,7 +46,7 @@ if len(sys.argv) > 6:
     key = sys.argv[6]
 
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-msg = struct.pack("BBxB4s32sI", 2, command, netmask, socket.inet_aton(addr), table, socket.htonl(int(time.time())) & 0xFFFFFFFF)
+msg = struct.pack("BBxB4B4s32sI", 2, command, netmask, socket.inet_aton(addr), timeout, table, socket.htonl(int(time.time())) & 0xFFFFFFFF)
 msg = msg + hmac.new(key, msg, digestmod=sha).digest()
 s.sendto(msg, (host, port))
 s.close()

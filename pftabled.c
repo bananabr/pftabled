@@ -228,7 +228,7 @@ main(int argc, char *argv[])
 			port = strtol(optarg, NULL, 10);
 			break;
 		case 't':
-			timeout = strtol(optarg, NULL, 10);
+			default_timeout = strtol(optarg, NULL, 10);
 			TAILQ_INIT(&timeouts);
 			break;
 		case 'v':
@@ -253,7 +253,7 @@ main(int argc, char *argv[])
 		err(1, "bind");
 
 	/* Set receive timeout on socket if using timeouts */
-	if (timeout) {
+	if (default_timeout) {
 		tv.tv_sec = 1;
 		tv.tv_usec = 0;
 		if (setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)))
@@ -369,7 +369,7 @@ main(int argc, char *argv[])
 	  	  switch (msg.cmd) {
 	  	  case PFTABLED_CMD_ADD:
 	  	  	cleanmask(&msg.addr, msg.mask);
-	  	  	add(table, &msg.addr, msg.mask);
+	  	  	add(table, &msg.addr, msg.mask, msg.timeout);
 	  	  	if (verbose)
 	  	  		logit(LOG_INFO, "<%s> add %s/%d\n", table,
 	  	  		    inet_ntoa(msg.addr), msg.mask);
