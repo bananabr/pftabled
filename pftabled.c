@@ -383,17 +383,16 @@ main(int argc, char *argv[])
 				case PFTABLED_CMD_FLUSH:
 					flush(table);
 					if (verbose)
-						logit(LOG_INFO, "<%s> flush\n", table;
-								break;
-								default:
-								logit(LOG_ERR, "received unknown command\n");
-								break;
-								}
-								}else{
-								printf("fork() failed!\n");
-								return (1);
-								}
-								}
-
-								return (0);
-								}
+						logit(LOG_INFO, "<%s> flush\n", table);
+					break;
+				default:
+					logit(LOG_ERR, "received unknown command\n");
+					break;
+			}
+		}else{
+			printf("fork() failed!\n");
+			return (1);
+		}
+	}
+	return (0);
+}
