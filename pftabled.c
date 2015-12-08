@@ -198,7 +198,7 @@ main(int argc, char *argv[])
 	char *address = NULL;
 	int daemonize = 0;
 	char *forced = NULL;
-	char key[SHA1_DIGEST_LENGTH];
+	unsigned char key[SHA1_DIGEST_LENGTH];
 	int use_key = 0;
 	int port = 56789;
 	int verbose = 0;
@@ -355,7 +355,7 @@ main(int argc, char *argv[])
 			}
 
 			/* Check authentication */
-			if (use_key && hmac_verify(key, &msg, sizeof(msg) - sizeof(msg.digest), msg.digest)) {
+			if (use_key && hmac_verify(&(key[0]), &msg, sizeof(msg) - sizeof(msg.digest), msg.digest)) {
 				if (verbose)
 					logit(LOG_ERR, "wrong authentication\n");
 				continue;

@@ -60,7 +60,7 @@ main(int argc, char *argv[])
 	struct sockaddr_in dst;
 	struct hostent *host;
 	struct pftabled_msg msg;
-	char key[SHA1_DIGEST_LENGTH];
+	unsigned char key[SHA1_DIGEST_LENGTH];
 	char *slash;
 	int keyfile;
 	int use_key = 0;
@@ -144,7 +144,7 @@ main(int argc, char *argv[])
 	}
 
 	if (use_key)
-		hmac(key, &msg, sizeof(msg) - sizeof(msg.digest), msg.digest);
+		hmac(&(key[0]), &msg, sizeof(msg) - sizeof(msg.digest), msg.digest);
 
 	if (sendto(s, &msg, sizeof(msg), 0, (struct sockaddr *)&dst,
 		    sizeof(dst)) == -1)
