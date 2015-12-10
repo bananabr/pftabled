@@ -46,6 +46,8 @@
 #include <syslog.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/stat.h>  /* For mode constants */
+#include <mqueue.h>
 
 #define PFDEV "/dev/pf"
 int pfdev = -1;
@@ -56,14 +58,13 @@ int default_timeout = 0;
 TAILQ_HEAD(pftimeout_head, pftimeout) timeouts;
 struct pftimeout {
         TAILQ_ENTRY(pftimeout)  queue;
-        struct in_addr    ip;
-        uint8_t      mask;
-        time_t      timeout;
-        char      table[PF_TABLE_NAME_SIZE];
+        struct	in_addr	ip;
+        uint8_t 	mask;
+        time_t		timeout;
+        char		table[PF_TABLE_NAME_SIZE];
 };
 
-        static void
-logit(int level, const char *fmt, ...)
+static void logit(int level, const char *fmt, ...)
 {
         va_list ap;
         extern char *__progname;
@@ -82,8 +83,7 @@ logit(int level, const char *fmt, ...)
         va_end(ap);
 }
 
-        static void
-add(char *tname, struct in_addr *ip, uint8_t mask, uint32_t _timeout)
+static void add(char *tname, struct in_addr *ip, uint8_t mask, uint32_t _timeout)
 {
         struct pfioc_table io;
         struct pfr_table table;
@@ -122,8 +122,7 @@ add(char *tname, struct in_addr *ip, uint8_t mask, uint32_t _timeout)
         }
 }
 
-        static void
-del(char *tname, struct in_addr *ip, uint8_t mask)
+static void del(char *tname, struct in_addr *ip, uint8_t mask)
 {
         struct pfioc_table io;
         struct pfr_table table;
@@ -148,8 +147,7 @@ del(char *tname, struct in_addr *ip, uint8_t mask)
                 err(1, "ioctl");
 }
 
-        static void
-flush(char *tname)
+static void flush(char *tname)
 {
         struct pfioc_table io;
         struct pfr_table table;
@@ -165,8 +163,7 @@ flush(char *tname)
                 err(1, "ioctl");
 }
 
-        static void
-usage(int code)
+static void usage(int code)
 {
         fprintf(stderr,
                         "Usage: pftabled [options...]\n"
@@ -203,6 +200,8 @@ main(int argc, char *argv[])
         int use_key = 0;
         int port = 56789;
         int verbose = 0;
+	mqd_t mqd;
+	uint32_t message_size = sizeof(struct pftimeout);
 
         /* Process commandline arguments */
         while ((ch = getopt(argc, argv, "a:df:k:p:t:vh")) != -1) {
@@ -300,11 +299,17 @@ main(int argc, char *argv[])
                         exit(1);
                 }
         }
+
+	mqd = mq_open("/pftabled", O_CREAT | O_EXCL | O_WRONLY | O_NONBLOCK, NULL);
+	if(mqd < 0){
+		logit(LOG_ERR, "Message queue creation failed. Returned code was %d", mqd);
+	}
         /* Check for timeouts */
         /*if (timeout) {*/
         pid_t pid = fork();
         if (pid == 0)
         {
+		mqd = mq_open("/pftabled", O_RDONLY | O_NONBLOCK, NULL);
                 while(1){
                         time_t now = time(NULL);
 
