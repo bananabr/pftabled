@@ -74,7 +74,7 @@ def main():
                 netmask = int(m.group(2))
         elif opt in ("-k", "--key"):
             key = arg
-            
+
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     msg = struct.pack("BBxB4sI32sI", VERSION, command, netmask, socket.inet_aton(addr), timeout, table, socket.htonl(int(time.time())) & 0xFFFFFFFF)
     if(key != ''):
@@ -82,9 +82,10 @@ def main():
         key_bytes = f.read(20)
         f.close()
     msg = msg + hmac.new(key_bytes, msg, hashlib.sha1).digest()
-    print s.sendto(msg, (host, port))
+    bytes_sent = 0
+    bytes_sent = s.sendto(msg, (host, port))
     s.close()
-    print "Message sent"
-    
+    print "Sent {0} bytes to server".format(bytes_sent)
+
 if __name__ == "__main__":
     main()
