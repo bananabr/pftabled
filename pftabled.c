@@ -346,7 +346,7 @@ main(int argc, char *argv[])
                         if (msg.version < 0x02)
                                 msg.mask = 32;
                         if (msg.version < 0x03)
-                                msg.timeout = 0;
+                                msg.timeout = default_timeout;
 
                         /* Check timestamp */
                         if (abs(time(NULL) - ntohl(msg.timestamp)) > CLOCKDIFF) {

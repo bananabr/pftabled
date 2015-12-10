@@ -142,7 +142,9 @@ main(int argc, char *argv[])
 		if (inet_pton(AF_INET, *argv, &msg.addr) != 1)
 			fatal("Unable to parse '%s'\n", *argv);
 	}
+
 	msg.timeout = 10;
+
 	if (use_key)
 		hmac(&(key[0]), &msg, sizeof(msg) - sizeof(msg.digest), msg.digest);
 
