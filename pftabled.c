@@ -360,13 +360,7 @@ main(int argc, char *argv[])
                         /* Check authentication */
                         if (use_key && hmac_verify(&(key[0]), &msg, sizeof(msg) - sizeof(msg.digest), msg.digest)) {
                                 if (verbose){
-				        uint8_t md2[SHA1_DIGEST_LENGTH];
-				        hmac(&(key[0]), &msg, sizeof(msg), md2);
-                                        logit(LOG_ERR, "wrong authentication from %s. Should be \"", inet_ntoa(raddr.sin_addr));
-					for (size_t i = 0; i < sizeof(md2); ++i) logit(LOG_ERR,"%02x", md2[i]);
-                                        logit(LOG_ERR, "\" but got \"");
-					for (size_t i = 0; i < sizeof(msg.digest); ++i) logit(LOG_ERR,"%02x", msg.digest[i]);
-                                        logit(LOG_ERR, "\"\n ");
+                                        logit(LOG_ERR, "wrong authentication from %s", inet_ntoa(raddr.sin_addr));
 				}
                                 continue;
                         }
