@@ -63,11 +63,13 @@
 			   seconds between server and client. Server drops
 			   packet if exceeded. */
 
-#define PFTABLED_MSG_VERSION 0x02
+#define PFTABLED_MSG_VERSION 0x03
 
 #define PFTABLED_CMD_ADD   0x01
 #define PFTABLED_CMD_DEL   0x02
 #define PFTABLED_CMD_FLUSH 0x03
+
+#define TIMEOUT_CHECK_INTERVAL	60
 
 struct pftabled_msg {
 	uint8_t		version;
@@ -75,6 +77,7 @@ struct pftabled_msg {
 	uint8_t		reserved;
 	uint8_t		mask;
 	struct in_addr	addr;
+	uint32_t        timeout;
 	char		table[PF_TABLE_NAME_SIZE];
 	uint32_t	timestamp;
 	uint8_t		digest[SHA1_DIGEST_LENGTH];
