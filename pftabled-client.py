@@ -22,25 +22,35 @@ import struct
 import sys
 import time
 import getopt
+import hashlib
+
+VERSION=3
 
 def print_help():
     print "USAGE:"
-    print "pftabled-client.py -s server -p port -t table_name -c [add|del|flush] [ -a entry_address -m entry_netmask ]"
+    print "pftabled-client.py -s server -p port -t table_name -c [add|del|flush] [ -a entry_address[/entry_netmask] -T timeout]"
 
 def main():
     if len(sys.argv) < 9:
         print_help()
         sys.exit(1)
 
+    try:
+        opts, args = getopt.getopt(sys.argv[1:],"hs:p:t:c:T:a:k:",["help","server=","port=","table=","command=","timeout=","address=","key="])
+    except getopt.GetoptError:
+        print_help()
+        sys.exit(2)
+
+    #DEFAULT VALUES
     addr = '0.0.0.0'
     netmask = 32
     timeout = 3600
+    command = 1
+    table = ''
+    port = 56789
+    host = '127.0.0.1'
     key = ''
-    try:
-        opts, args = getopt.getopt(argv,"hs:p:t:c:T:a:m:k:",["help","server=","port=","table=","command=","timeout=","address=","mask=","key="])
-    except getopt.GetoptError:
-        print_help()
-    sys.exit(2)
+    key_bytes = ''
 
     for opt, arg in opts:
         if opt == '-h':
@@ -49,26 +59,32 @@ def main():
         elif opt in ("-s", "--server"):
             host = arg
         elif opt in ("-p", "--port"):
-            port = int(sys.arg)
+            port = int(arg)
         elif opt in ("-t", "--table"):
             table = arg
         elif opt in ("-c", "--command"):
             command = { 'add': 1, 'del': 2, 'flush': 3 }.get(arg, 0)
         elif opt in ("-T", "--timeout"):
-            timeout = int(sys.arg)
+            timeout = int(arg)
         elif opt in ("-a", "--address"):
-            addr = sys.argv[5]
+            addr = arg
             m = re.search('([\d\.]+)/(\d+)', addr)
             if m:
                 addr = m.group(1)
-            netmask = int(m.group(2))
+                netmask = int(m.group(2))
         elif opt in ("-k", "--key"):
             key = arg
-
+            
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    msg = struct.pack("BBxB4B4s32sI", 2, command, netmask, socket.inet_aton(addr), timeout, table, socket.htonl(int(time.time())) & 0xFFFFFFFF)
-    msg = msg + hmac.new(key, msg, digestmod=sha).digest()
-    s.sendto(msg, (host, port))
+    msg = struct.pack("BBxB4sI32sI", VERSION, command, netmask, socket.inet_aton(addr), timeout, table, socket.htonl(int(time.time())) & 0xFFFFFFFF)
+    if(key != ''):
+        f = open(key, mode='rb')
+        key_bytes = f.read(20)
+        f.close()
+    msg = msg + hmac.new(key_bytes, msg, hashlib.sha1).digest()
+    print s.sendto(msg, (host, port))
     s.close()
+    print "Message sent"
+    
 if __name__ == "__main__":
     main()
