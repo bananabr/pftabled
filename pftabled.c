@@ -322,7 +322,7 @@ main(int argc, char *argv[])
 			int32_t bytes_read = 0;
 			char buff[TIMEOUT_MESSAGE_SIZE];
 
-			if ((t = (struct pftimeout*)malloc(TIMEOUT_MESSAGE_SIZE) == NULL))
+			if ((t = malloc(TIMEOUT_MESSAGE_SIZE) == NULL))
 		        	err(1, "malloc");
 			bytes_read = mq_receive(mqd, buff, TIMEOUT_MESSAGE_SIZE, NULL);
 			memcpy(t, buff, TIMEOUT_MESSAGE_SIZE);
@@ -331,12 +331,12 @@ main(int argc, char *argv[])
 		                TAILQ_INSERT_HEAD(&timeouts, t, queue);
 				if(verbose >= 1){
 			                logit(LOG_NOTICE, "Included %s/%d in timeout list with timeout %d",
-						inet_ntoa(*ip),
+						inet_ntoa(t->ip),
 						mask,
 						timeout
 					);
 				}
-				if ((t = malloc(TIMEOUT_MESSAGE_SIZE) == NULL)
+				if ((t = malloc(TIMEOUT_MESSAGE_SIZE) == NULL))
 		        		err(1, "malloc");
 				bytes_read = mq_receive(mqd, t, TIMEOUT_MESSAGE_SIZE, NULL);
 			}
