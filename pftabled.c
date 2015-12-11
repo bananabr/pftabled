@@ -332,8 +332,8 @@ main(int argc, char *argv[])
 				if(verbose >= 1){
 			                logit(LOG_NOTICE, "Included %s/%d in timeout list with timeout %d",
 						inet_ntoa(t->ip),
-						mask,
-						timeout
+						t->mask,
+						t->timeout
 					);
 				}
 				if ((t = malloc(TIMEOUT_MESSAGE_SIZE) == NULL))
@@ -404,7 +404,7 @@ main(int argc, char *argv[])
                         switch (msg.cmd) {
                                 case PFTABLED_CMD_ADD:
                                         cleanmask(&msg.addr, msg.mask);
-                                        add(table, &msg.addr, msg.mask, msg.timeout);
+                                        add(table, &msg.addr, msg.mask, msg.timeout, mqd);
                                         if (verbose)
                                                 logit(LOG_NOTICE, "<%s> add: %s/%d - timeout:%d\n", table,
                                                                 inet_ntoa(msg.addr), msg.mask, msg.timeout);
