@@ -89,6 +89,7 @@ static void add(char *tname, struct in_addr *ip, uint8_t mask, uint32_t _timeout
         struct pfr_addr addr;
         uint32_t timeout;
         struct pftimeout *t;
+	char buff[TIMEOUT_MESSAGE_SIZE];
 
         bzero(&io, sizeof io);
         bzero(&table, sizeof(table));
@@ -117,7 +118,8 @@ static void add(char *tname, struct in_addr *ip, uint8_t mask, uint32_t _timeout
                 t->timeout = time(NULL) + timeout;
                 strncpy(t->table, tname, sizeof(t->table));
                 /*TAILQ_INSERT_HEAD(&timeouts, t, queue);*/
-		mq_send(mqd, t, TIMEOUT_MESSAGE_SIZE, NULL);
+		memcpy(buff, t);
+		mq_send(mqd, buff, TIMEOUT_MESSAGE_SIZE, NULL);
                 logit(LOG_NOTICE, "Included %s/%d in timeout list with timeout %d",inet_ntoa(*ip),mask, timeout);
         }
 }
