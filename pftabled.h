@@ -39,6 +39,7 @@
 #endif
 #endif
 #include <netinet/in.h>
+#include <sys/queue.h>
 #include "sha1.h"
 
 #ifdef DEBUG
@@ -69,7 +70,17 @@
 #define PFTABLED_CMD_DEL   0x02
 #define PFTABLED_CMD_FLUSH 0x03
 
+
+struct pftimeout {
+	TAILQ_ENTRY(pftimeout)  queue;
+	struct  in_addr ip;
+	uint8_t         mask;
+	time_t          timeout;
+	char            table[PF_TABLE_NAME_SIZE];
+};
+
 #define TIMEOUT_CHECK_INTERVAL	60
+#define TIMEOUT_MESSAGE_SIZE	sizeof(struct pftimeout)
 
 struct pftabled_msg {
 	uint8_t		version;
