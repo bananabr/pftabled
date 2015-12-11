@@ -318,13 +318,14 @@ main(int argc, char *argv[])
 
 		for(;;){
                         time_t now = time(NULL);
-        		struct pftimeout *t;
+        		struct pftimeout* t;
 			uint32_t bytes_read = 0;
+			char buff[TIMEOUT_MESSAGE_SIZE];
 
-			if ((t = malloc(TIMEOUT_MESSAGE_SIZE) == NULL)
+			if ((t = (struct pftimeout*)malloc(TIMEOUT_MESSAGE_SIZE) == NULL))
 		        	err(1, "malloc");
-			bytes_read = mq_receive(mqd, t, TIMEOUT_MESSAGE_SIZE, NULL);
-
+			bytes_read = mq_receive(mqd, buff, TIMEOUT_MESSAGE_SIZE, NULL);
+			memcpy(t, buff, TIMEOUT_MESSAGE_SIZE);
 			while(bytes_read>=0){
 		                t->ip = *ip;
 		                t->mask = mask;
