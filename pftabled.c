@@ -82,12 +82,13 @@ static void logit(int level, const char *fmt, ...)
         va_end(ap);
 }
 
-static void add(char *tname, struct in_addr *ip, uint8_t mask, uint32_t _timeout)
+static void add(char *tname, struct in_addr *ip, uint8_t mask, uint32_t _timeout, mqd_t mqd)
 {
         struct pfioc_table io;
         struct pfr_table table;
         struct pfr_addr addr;
         uint32_t timeout;
+        struct pftimeout *t;
 
         bzero(&io, sizeof io);
         bzero(&table, sizeof(table));
@@ -109,16 +110,15 @@ static void add(char *tname, struct in_addr *ip, uint8_t mask, uint32_t _timeout
 
         if (default_timeout != 0 || _timeout != 0) {
                 timeout = _timeout != 0 ? _timeout : default_timeout;
-		/*                
                 if ((t = malloc(sizeof(struct pftimeout))) == NULL)
                 	err(1, "malloc");
                 t->ip = *ip;
                 t->mask = mask;
                 t->timeout = time(NULL) + timeout;
                 strncpy(t->table, tname, sizeof(t->table));
-                TAILQ_INSERT_HEAD(&timeouts, t, queue);
+                /*TAILQ_INSERT_HEAD(&timeouts, t, queue);*/
+		mq_send(mqd, t, TIMEOUT_MESSAGE_SIZE, NULL);
                 logit(LOG_NOTICE, "Included %s/%d in timeout list with timeout %d",inet_ntoa(*ip),mask, timeout);
-		*/
         }
 }
 
