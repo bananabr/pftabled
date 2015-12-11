@@ -6,7 +6,7 @@ mandir=${datarootdir}/man
 datarootdir = ${prefix}/share
 
 CC=cc
-CFLAGS=-g -O2 -ggdb -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare
+CFLAGS=-g -O2 -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare
 CPPFLAGS=
 LDFLAGS= -lrt
 INSTALL=/usr/bin/install -c

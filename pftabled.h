@@ -79,7 +79,7 @@ struct pftimeout {
 	char            table[PF_TABLE_NAME_SIZE];
 };
 
-#define TIMEOUT_CHECK_INTERVAL	60
+#define TIMEOUT_CHECK_INTERVAL	5
 #define TIMEOUT_MESSAGE_SIZE	sizeof(struct pftimeout)
 
 struct pftabled_msg {

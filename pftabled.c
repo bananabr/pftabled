@@ -89,7 +89,7 @@ static void add(char *tname, struct in_addr *ip, uint8_t mask, uint32_t _timeout
         struct pfr_addr addr;
         uint32_t timeout;
         struct pftimeout *t;
-	char buff[TIMEOUT_MESSAGE_SIZE];
+	//char buff[TIMEOUT_MESSAGE_SIZE];
 
         bzero(&io, sizeof io);
         bzero(&table, sizeof(table));
@@ -117,8 +117,11 @@ static void add(char *tname, struct in_addr *ip, uint8_t mask, uint32_t _timeout
                 t->mask = mask;
                 t->timeout = time(NULL) + timeout;
                 strncpy(t->table, tname, sizeof(t->table));
-		memcpy(buff, t, TIMEOUT_MESSAGE_SIZE);
-		mq_send(mqd, &(buff[0]), TIMEOUT_MESSAGE_SIZE, 0);
+		//memcpy(buff, t, TIMEOUT_MESSAGE_SIZE);
+		//mq_send(mqd, &(buff[0]), TIMEOUT_MESSAGE_SIZE, 0);
+		if (mq_send(mqd, (const char*)t, TIMEOUT_MESSAGE_SIZE, 0) < 0) {
+			perror("mq_send");
+		}
                 logit(LOG_NOTICE, "Included %s/%d in timeout list with timeout %d",inet_ntoa(*ip),mask, timeout);
         }
 }
@@ -191,6 +194,7 @@ main(int argc, char *argv[])
         struct timeval tv;
         char *table;
         int keyfile;
+	struct mq_attr mqd_att;
 	mqd_t mqd;
 
         /* Options and their defaults */
@@ -298,34 +302,51 @@ main(int argc, char *argv[])
                 }
         }
 
-	mqd = mq_open("/pftabled", O_CREAT | O_WRONLY | O_NONBLOCK, NULL);
+	if (mq_unlink("/pftabled") != 0) {
+  	   perror("mq_unlink");
+        }
+	
+	mqd_att.mq_flags = O_NONBLOCK;
+	mqd_att.mq_maxmsg = 1024;
+	mqd_att.mq_msgsize = TIMEOUT_MESSAGE_SIZE;
+	mqd_att.mq_curmsgs = 0;
+
+	mqd = mq_open("/pftabled", O_CREAT | O_WRONLY, 0600, NULL);
 	if(mqd < 0){
 		logit(LOG_ERR, "Message queue creation failed. Returned code was %d", mqd);
 	}
+	mq_getattr(mqd, &mqd_att);	
+
         /* Check for timeouts */
         /*if (timeout) {*/
         pid_t pid = fork();
         if (pid == 0)
-        {
+        {		
 		TAILQ_HEAD(pftimeout_head, pftimeout) timeouts;
                 TAILQ_INIT(&timeouts);
 
 		if(mq_close(mqd)<0)
 			logit(LOG_ERR, "Message queue close failed.");
-		mqd = mq_open("/pftabled", O_RDONLY | O_NONBLOCK, NULL);
+		mqd = mq_open("/pftabled", O_RDONLY|O_NONBLOCK );
 
 		for(;;){
                         time_t now = time(NULL);
         		struct pftimeout* t;
 			int32_t bytes_read = 0;
-			char buff[TIMEOUT_MESSAGE_SIZE];
+			int32_t count = 0;
+			//char buff[TIMEOUT_MESSAGE_SIZE];
 
-			if ((t = (struct pftimeout*) malloc(TIMEOUT_MESSAGE_SIZE) == NULL))
-		        	err(1, "malloc");
-			bytes_read = mq_receive(mqd, buff, TIMEOUT_MESSAGE_SIZE, NULL);
-			memcpy(t, buff, TIMEOUT_MESSAGE_SIZE);
+			//if ((t = (struct pftimeout*) malloc(TIMEOUT_MESSAGE_SIZE)) == NULL)
+		        //	err(1, "malloc");
+			//bytes_read = mq_receive(mqd,(char*)t, TIMEOUT_MESSAGE_SIZE, NULL);
+			t = calloc(1, mqd_att.mq_msgsize);
+			bytes_read = mq_receive(mqd,(char*)t, mqd_att.mq_msgsize, NULL);
+		        //printf("bytes read=%d, sizeof=%ld\n", bytes_read, TIMEOUT_MESSAGE_SIZE);
+			//perror("mq_receive");
+			//memcpy(t, buff, TIMEOUT_MESSAGE_SIZE);
 
 			while(bytes_read >= 0){
+				logit(LOG_NOTICE, "Got new messsage from main daemon!");
 		                TAILQ_INSERT_HEAD(&timeouts, t, queue);
 				if(verbose >= 1){
 			                logit(LOG_NOTICE, "Included %s/%d in timeout list with timeout %d",
@@ -334,25 +355,32 @@ main(int argc, char *argv[])
 						t->timeout
 					);
 				}
-				if ((t = (struct pftimeout*) malloc(TIMEOUT_MESSAGE_SIZE) == NULL))
-		        		err(1, "malloc");
-				bytes_read = mq_receive(mqd, buff, TIMEOUT_MESSAGE_SIZE, NULL);
-				memcpy(t, buff, TIMEOUT_MESSAGE_SIZE);
+				//if ((t = (struct pftimeout*) malloc(TIMEOUT_MESSAGE_SIZE)) == NULL)
+		        	//	err(1, "malloc");
+				t = calloc(1, mqd_att.mq_msgsize);
+			        bytes_read = mq_receive(mqd,(char*)t, mqd_att.mq_msgsize, NULL);
+				//bytes_read = mq_receive(mqd, (char*)t, TIMEOUT_MESSAGE_SIZE, NULL);
+				//memcpy(t, buff, TIMEOUT_MESSAGE_SIZE);
 			}
 			free(t);
+
 			TAILQ_FOREACH(t, &timeouts, queue){
-                                if (now < t->timeout)
-                                        break;
-				del(t->table, &t->ip, t->mask);
-                                if (verbose)
-                                        logit(LOG_NOTICE, "<%s> timeout %s/%d\n",
-                                                        t->table,
-						       	inet_ntoa(t->ip),
-                                                        t->mask
-					);
-                                TAILQ_REMOVE(&timeouts, t, queue);
-                                free(t);
+                                if (now >= t->timeout){
+					del(t->table, &t->ip, t->mask);
+                        	        if (verbose>=0)
+                        	                logit(LOG_NOTICE, "<%s> timeout %s/%d\n",
+                        	                                t->table,
+							       	inet_ntoa(t->ip),
+                        	                                t->mask
+						);
+                        	        TAILQ_REMOVE(&timeouts, t, queue);
+                        	        free(t);
+				}else{
+					count++;
+				}
 			}
+			if(verbose>=0)
+				logit(LOG_NOTICE, "Hello from timeout daemon. Currently have %d entries in queue.", count);
                         sleep(TIMEOUT_CHECK_INTERVAL);
                 }
         }else if (pid > 0){
