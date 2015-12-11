@@ -319,25 +319,23 @@ main(int argc, char *argv[])
 		for(;;){
                         time_t now = time(NULL);
         		struct pftimeout* t;
-			uint32_t bytes_read = 0;
+			int32_t bytes_read = 0;
 			char buff[TIMEOUT_MESSAGE_SIZE];
 
 			if ((t = (struct pftimeout*)malloc(TIMEOUT_MESSAGE_SIZE) == NULL))
 		        	err(1, "malloc");
 			bytes_read = mq_receive(mqd, buff, TIMEOUT_MESSAGE_SIZE, NULL);
 			memcpy(t, buff, TIMEOUT_MESSAGE_SIZE);
-			while(bytes_read>=0){
-		                t->ip = *ip;
-		                t->mask = mask;
-		                t->timeout = time(NULL) + timeout;
-		                strncpy(t->table, tname, sizeof(t->table));
+
+			while(bytes_read >= 0){
 		                TAILQ_INSERT_HEAD(&timeouts, t, queue);
-				if(verbose >= 1)
+				if(verbose >= 1){
 			                logit(LOG_NOTICE, "Included %s/%d in timeout list with timeout %d",
 						inet_ntoa(*ip),
 						mask,
 						timeout
 					);
+				}
 				if ((t = malloc(TIMEOUT_MESSAGE_SIZE) == NULL)
 		        		err(1, "malloc");
 				bytes_read = mq_receive(mqd, t, TIMEOUT_MESSAGE_SIZE, NULL);
@@ -356,22 +354,6 @@ main(int argc, char *argv[])
                                 TAILQ_REMOVE(&timeouts, t, queue);
                                 free(t);
 			}
-			/*
-                        while (!TAILQ_EMPTY(&timeouts)) {
-                                t = TAILQ_LAST(&timeouts, pftimeout_head);
-                                if (now < t->timeout)
-                                        break;
-
-                                del(t->table, &t->ip, t->mask);
-                                if (verbose)
-                                        logit(LOG_NOTICE, "<%s> timeout %s/%d\n",
-                                                        t->table, inet_ntoa(t->ip),
-                                                        t->mask);
-
-                                TAILQ_REMOVE(&timeouts, t, queue);
-                                free(t);
-                        }
-			*/
                         sleep(TIMEOUT_CHECK_INTERVAL);
                 }
         }else if (pid > 0){
