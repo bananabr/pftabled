@@ -190,7 +190,6 @@ main(int argc, char *argv[])
         struct pftabled_msg msg;
         int ch, n, s;
         struct timeval tv;
-        struct pftimeout *t;
         char *table;
         int keyfile;
 	mqd_t mqd;
