@@ -193,7 +193,6 @@ main(int argc, char *argv[])
         char *table;
         int keyfile;
 	mqd_t mqd;
-	char timeoutm_buff[TIMEOUT_MESSAGE_SIZE];
 
         /* Options and their defaults */
         char *address = NULL;
@@ -322,7 +321,7 @@ main(int argc, char *argv[])
 			int32_t bytes_read = 0;
 			char buff[TIMEOUT_MESSAGE_SIZE];
 
-			if ((t = malloc(TIMEOUT_MESSAGE_SIZE) == NULL))
+			if ((t = (struct pftimeout*) malloc(TIMEOUT_MESSAGE_SIZE) == NULL))
 		        	err(1, "malloc");
 			bytes_read = mq_receive(mqd, buff, TIMEOUT_MESSAGE_SIZE, NULL);
 			memcpy(t, buff, TIMEOUT_MESSAGE_SIZE);
