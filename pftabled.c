@@ -335,9 +335,10 @@ main(int argc, char *argv[])
 						t->timeout
 					);
 				}
-				if ((t = malloc(TIMEOUT_MESSAGE_SIZE) == NULL))
+				if ((t = (struct pftimeout*) malloc(TIMEOUT_MESSAGE_SIZE) == NULL))
 		        		err(1, "malloc");
-				bytes_read = mq_receive(mqd, t, TIMEOUT_MESSAGE_SIZE, NULL);
+				bytes_read = mq_receive(mqd, buff, TIMEOUT_MESSAGE_SIZE, NULL);
+				memcpy(t, buff, TIMEOUT_MESSAGE_SIZE);
 			}
 			free(t);
 			TAILQ_FOREACH(t, &timeouts, queue){
