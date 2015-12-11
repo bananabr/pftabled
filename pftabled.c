@@ -111,16 +111,14 @@ static void add(char *tname, struct in_addr *ip, uint8_t mask, uint32_t _timeout
 
         if (default_timeout != 0 || _timeout != 0) {
                 timeout = _timeout != 0 ? _timeout : default_timeout;
-                if ((t = malloc(sizeof(struct pftimeout))) == NULL)
+                if ((t = malloc(TIMEOUT_MESSAGE_SIZE)) == NULL)
                 	err(1, "malloc");
                 t->ip = *ip;
                 t->mask = mask;
                 t->timeout = time(NULL) + timeout;
                 strncpy(t->table, tname, sizeof(t->table));
-                /*TAILQ_INSERT_HEAD(&timeouts, t, queue);*/
 		memcpy(buff, t, TIMEOUT_MESSAGE_SIZE);
-                logit(LOG_NOTICE, "%d\n",((struct pftimeout)buff).timeout);
-		mq_send(mqd, buff, TIMEOUT_MESSAGE_SIZE, 0);
+		mq_send(mqd, &(buff[0]), TIMEOUT_MESSAGE_SIZE, 0);
                 logit(LOG_NOTICE, "Included %s/%d in timeout list with timeout %d",inet_ntoa(*ip),mask, timeout);
         }
 }

@@ -5,18 +5,18 @@ sbindir=${exec_prefix}/sbin
 mandir=${datarootdir}/man
 datarootdir = ${prefix}/share
 
-CC=gcc
-CFLAGS=-g -O2 -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare
+CC=cc
+CFLAGS=-g -O2 -ggdb -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare
 CPPFLAGS=
-LDFLAGS=-lrt
+LDFLAGS= -lrt
 INSTALL=/usr/bin/install -c
 LIBS=
-NROFF=nroff -Tascii -man
+NROFF=mandoc -Tascii -mandoc
 
 SERVEROBJS=pftabled.o hmac.o sha1.o
 CLIENTOBJS=pftabled-client.o hmac.o sha1.o
 
-all: client
+all: client server
 
 server: pftabled pftabled.cat1
 
@@ -31,7 +31,7 @@ pftabled.cat1: pftabled.1
 pftabled-client: ${CLIENTOBJS}
 	${CC} ${LDFLAGS} -o $@ ${CLIENTOBJS} ${LIBS}
 
-install: client-install
+install: client-install server-install
 
 server-install: pftabled pftabled.cat1
 	${INSTALL} -s -m 555 pftabled ${sbindir}

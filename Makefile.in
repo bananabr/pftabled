@@ -6,9 +6,9 @@ mandir=@mandir@
 datarootdir = @datarootdir@
 
 CC=@CC@
-CFLAGS=@CFLAGS@ -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare
+CFLAGS=@CFLAGS@ -ggdb -Wall -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wshadow -Wpointer-arith -Wcast-qual -Wsign-compare
 CPPFLAGS=@CPPFLAGS@
-LDFLAGS=@LDFLAGS@
+LDFLAGS=@LDFLAGS@ -lrt
 INSTALL=@INSTALL@
 LIBS=@LIBS@
 NROFF=@NROFF@
