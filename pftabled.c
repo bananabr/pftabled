@@ -119,7 +119,7 @@ static void add(char *tname, struct in_addr *ip, uint8_t mask, uint32_t _timeout
                 strncpy(t->table, tname, sizeof(t->table));
                 /*TAILQ_INSERT_HEAD(&timeouts, t, queue);*/
 		memcpy(buff, t, TIMEOUT_MESSAGE_SIZE);
-		mq_send(mqd, buff, TIMEOUT_MESSAGE_SIZE, NULL);
+		mq_send(mqd, buff, TIMEOUT_MESSAGE_SIZE, 0);
                 logit(LOG_NOTICE, "Included %s/%d in timeout list with timeout %d",inet_ntoa(*ip),mask, timeout);
         }
 }
@@ -231,7 +231,6 @@ main(int argc, char *argv[])
                                 break;
                         case 't':
                                 default_timeout = strtol(optarg, NULL, 10);
-                                TAILQ_INIT(&timeouts);
                                 break;
                         case 'v':
                                 verbose = 1;
@@ -312,6 +311,7 @@ main(int argc, char *argv[])
         if (pid == 0)
         {
 		TAILQ_HEAD(pftimeout_head, pftimeout) timeouts;
+                TAILQ_INIT(&timeouts);
 
 		if(mq_close(mqd)<0)
 			logit(LOG_ERR, "Message queue close failed.");
