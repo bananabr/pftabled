@@ -89,7 +89,6 @@ static void add(char *tname, struct in_addr *ip, uint8_t mask, uint32_t _timeout
         struct pfr_addr addr;
         uint32_t timeout;
         struct pftimeout *t;
-	//char buff[TIMEOUT_MESSAGE_SIZE];
 
         bzero(&io, sizeof io);
         bzero(&table, sizeof(table));
@@ -107,7 +106,7 @@ static void add(char *tname, struct in_addr *ip, uint8_t mask, uint32_t _timeout
         io.pfrio_size = 1;
 
         if (ioctl(pfdev, DIOCRADDADDRS, &io))
-                err(1, "ioctl");
+        	perror("ioctl");
 
         if (default_timeout != 0 || _timeout != 0) {
                 timeout = _timeout != 0 ? _timeout : default_timeout;
@@ -117,8 +116,6 @@ static void add(char *tname, struct in_addr *ip, uint8_t mask, uint32_t _timeout
                 t->mask = mask;
                 t->timeout = time(NULL) + timeout;
                 strncpy(t->table, tname, sizeof(t->table));
-		//memcpy(buff, t, TIMEOUT_MESSAGE_SIZE);
-		//mq_send(mqd, &(buff[0]), TIMEOUT_MESSAGE_SIZE, 0);
 		if (mq_send(mqd, (const char*)t, TIMEOUT_MESSAGE_SIZE, 0) < 0) {
 			perror("mq_send");
 		}
