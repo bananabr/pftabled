@@ -28,7 +28,7 @@ VERSION=3
 
 def print_help():
     print "USAGE:"
-    print "pftabled-client.py -s server -p port -t table_name -c [add|del|flush] [ -a entry_address[/entry_netmask] -T timeout]"
+    print "pftabled-client.py -s server -p port -t table_name -c [add|del|flush] [ -a entry_address[/entry_netmask] -T timeout -k keyfile]"
 
 def main():
     if len(sys.argv) < 9:
