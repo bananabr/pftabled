@@ -119,7 +119,8 @@ static void add(char *tname, struct in_addr *ip, uint8_t mask, uint32_t _timeout
 		if (mq_send(mqd, (const char*)t, TIMEOUT_MESSAGE_SIZE, 0) < 0) {
 			perror("mq_send");
 		}
-                logit(LOG_NOTICE, "Included %s/%d in timeout list with timeout %d",inet_ntoa(*ip),mask, timeout);
+		if(verbose >= 1)
+			logit(LOG_NOTICE, "Included %s/%d in timeout list with timeout %d",inet_ntoa(*ip),mask, timeout);
         }
 }
 
@@ -231,7 +232,7 @@ main(int argc, char *argv[])
                                 default_timeout = strtol(optarg, NULL, 10);
                                 break;
                         case 'v':
-                                verbose = 1;
+                                verbose += 1;
                                 break;
                         case 'h':
                         default:
@@ -343,7 +344,6 @@ main(int argc, char *argv[])
 			//memcpy(t, buff, TIMEOUT_MESSAGE_SIZE);
 
 			while(bytes_read >= 0){
-				logit(LOG_NOTICE, "Got new messsage from main daemon!");
 		                TAILQ_INSERT_HEAD(&timeouts, t, queue);
 				if(verbose >= 1){
 			                logit(LOG_NOTICE, "Included %s/%d in timeout list with timeout %d",
@@ -364,7 +364,7 @@ main(int argc, char *argv[])
 			TAILQ_FOREACH(t, &timeouts, queue){
                                 if (now >= t->timeout){
 					del(t->table, &t->ip, t->mask);
-                        	        if (verbose>=0)
+                        	        if (verbose>=1)
                         	                logit(LOG_NOTICE, "<%s> timeout %s/%d\n",
                         	                                t->table,
 							       	inet_ntoa(t->ip),
@@ -376,8 +376,8 @@ main(int argc, char *argv[])
 					count++;
 				}
 			}
-			if(verbose>=0)
-				logit(LOG_NOTICE, "Hello from timeout daemon. Currently have %d entries in queue.", count);
+			if(verbose>=3)
+				logit(LOG_DEBUG, "Hello from timeout daemon. Currently have %d entries in queue.", count);
                         sleep(TIMEOUT_CHECK_INTERVAL);
                 }
         }else if (pid > 0){
@@ -430,19 +430,20 @@ main(int argc, char *argv[])
                                         cleanmask(&msg.addr, msg.mask);
                                         add(table, &msg.addr, msg.mask, msg.timeout, mqd);
                                         if (verbose)
-                                                logit(LOG_NOTICE, "<%s> add: %s/%d - timeout:%d\n", table,
+						if(verbose >= 1)
+                                                	logit(LOG_NOTICE, "<%s> add: %s/%d - timeout:%d\n", table,
                                                                 inet_ntoa(msg.addr), msg.mask, msg.timeout);
                                         break;
                                 case PFTABLED_CMD_DEL:
                                         cleanmask(&msg.addr, msg.mask);
                                         del(table, &msg.addr, msg.mask);
-                                        if (verbose)
+                                        if (verbose >= 1)
                                                 logit(LOG_NOTICE, "<%s> del %s/%d\n", table,
                                                                 inet_ntoa(msg.addr), msg.mask);
                                         break;
                                 case PFTABLED_CMD_FLUSH:
                                         flush(table);
-                                        if (verbose)
+                                        if (verbose >= 1)
                                                 logit(LOG_NOTICE, "<%s> flush\n", table);
                                         break;
                                 default:
