@@ -82,6 +82,24 @@ static void logit(int level, const char *fmt, ...)
         va_end(ap);
 }
 
+static void add_table(pfr_table *table)
+{
+	struct pfioc_table io;
+
+	bzero(&io, sizeof io);
+
+	io.pfrio_flags = 0;
+	io.pfrio_buffer = table;
+	io.pfrio_esize = sizeof(*table);
+	io.pfrio_size = 1;
+	if (ioctl(dev, DIOCRADDTABLES, &io)){
+        	perror("ioctl");
+		return (-1);
+	}
+	return 0;
+}
+
+
 static void add(char *tname, struct in_addr *ip, uint8_t mask, uint32_t _timeout, mqd_t mqd)
 {
         struct pfioc_table io;
@@ -105,8 +123,15 @@ static void add(char *tname, struct in_addr *ip, uint8_t mask, uint32_t _timeout
         io.pfrio_esize = sizeof(addr);
         io.pfrio_size = 1;
 
-        if (ioctl(pfdev, DIOCRADDADDRS, &io))
-        	perror("ioctl");
+        if (ioctl(pfdev, DIOCRADDADDRS, &io)){
+		if(errno == ESRCH){
+			if(add_table(&table) == 0)
+				if(ioctl(pfdev, DIOCRADDADDRS, &io))
+	        			perror("ioctl");
+		}else{
+        		perror("ioctl");
+		}
+	}
 
         if (default_timeout != 0 || _timeout != 0) {
                 timeout = _timeout != 0 ? _timeout : default_timeout;
