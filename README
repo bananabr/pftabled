@@ -94,6 +94,8 @@ Datagram format (64 bytes):
 	+---------+---------+---------+---------+
 	|              IPv4 address             |
 	+---------+---------+---------+---------+
+	|                Timeout                |
+	+---------+---------+---------+---------+
 	|                                       |
 	:         Table name (32 bytes)         :
 	|                                       |
@@ -108,12 +110,16 @@ Datagram format (64 bytes):
 Version:
 	0x01	pftabled 1.05 and earlier
 	0x02	pftabled 1.06 and later
+	0x03	pftabled 1.10 and later
 
 Command:
 	0x01	Add address to table.
 	0x02	Delete address from table.
 	0x03	Flush table.
 
+Timeout:
+	Time in seconds that address should be kept in table.
+	
 Timestamp:
 	The server compares incoming timestamps with it's local clock. If
 	the difference (= clock difference + network delay) is greater than
@@ -124,6 +130,9 @@ Timestamp:
 History
 -----------------------------------------------------------------------------
 
+2010-11-12 Version 1.10
+           Add timeout capability to server.
+	   
 2010-11-12 Version 1.09
            Add sample PHP client. Use mandoc manual formatter if available.
 
